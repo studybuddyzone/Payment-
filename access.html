@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Question Bank - My Subjects</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue-deep: #0a2540;
+    --blue-panel: #0f3158;
+    --blue-line: #2e5c8a;
+    --amber: #f2a541;
+    --paper: #eef3f8;
+    --paper-dim: #93a9c4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--blue-deep);
+    background-image:
+      linear-gradient(rgba(46,92,138,0.35) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(46,92,138,0.35) 1px, transparent 1px);
+    background-size: 88px 88px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--paper);
+    padding: 24px 20px 40px;
+  }
+  .wrap { max-width: 440px; margin: 0 auto; }
+
+  .tag {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  .sub { font-size: 13px; color: var(--paper-dim); margin-bottom: 22px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .card {
+    background: var(--blue-panel);
+    border: 1.5px solid var(--blue-line);
+    border-radius: 4px;
+    padding: 16px 14px;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+    text-align: left;
+  }
+  .card:active { transform: scale(0.97); }
+
+  .card.owned { border-color: var(--amber); }
+  .card.owned::after {
+    content: "✓ खुला है";
+    position: absolute;
+    top: 8px; right: 10px;
+    color: var(--amber);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .card.locked { opacity: 0.55; }
+  .card.locked::after {
+    content: "🔒";
+    position: absolute;
+    top: 10px; right: 12px;
+    font-size: 13px;
+  }
+
+  .card .code {
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .card.locked .code { color: var(--paper-dim); }
+  .card .name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 12px;
+    min-height: 34px;
+  }
+  .card .price { font-size: 13px; color: var(--paper-dim); }
+
+  .status {
+    text-align: center;
+    font-size: 13px;
+    color: var(--paper-dim);
+    margin: 40px 0;
+  }
+
+  .upgrade-note {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--paper-dim);
+  }
+  .upgrade-note a { color: var(--amber); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="tag">Xevron-Tech // My Access</div>
+  <h1>Question Banks</h1>
+  <div class="sub">Jo unlock hai usko tap karke seedha khulega</div>
+
+  <div class="status" id="loadingMsg">Load हो रहा है...</div>
+  <div class="grid" id="grid" style="display:none;"></div>
+  <div class="upgrade-note" id="upgradeNote" style="display:none;">
+    Baaki subjects unlock karne ke liye <a href="payment.html">yahan tap karein</a>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBhud5nJEKXa1cpACVILIp2FmE6RAuGNkY",
+  authDomain: "payment-gateway-8ffe5.firebaseapp.com",
+  databaseURL: "https://payment-gateway-8ffe5-default-rtdb.firebaseio.com",
+  projectId: "payment-gateway-8ffe5",
+  storageBucket: "payment-gateway-8ffe5.firebasestorage.app",
+  messagingSenderId: "65617324140",
+  appId: "1:65617324140:web:d1d504941d9f768fb25049",
+  measurementId: "G-5S0Z4NNCW8"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+const grid = document.getElementById("grid");
+const loadingMsg = document.getElementById("loadingMsg");
+const upgradeNote = document.getElementById("upgradeNote");
+
+let currentUser = null;
+let ownedKey = null; // "ALL" ya specific subject key, ya null agar kuch nahi khareeda
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "index.html";
+    return;
+  }
+  currentUser = user;
+  const idToken = await user.getIdToken();
+
+  try {
+    const res = await fetch(`/api/check-access?idToken=${idToken}`);
+    const data = await res.json();
+
+    if (!data.paid) {
+      // kuch nahi khareeda -> payment page pe bhej do
+      window.location.href = "payment.html";
+      return;
+    }
+    ownedKey = data.owned; // "ALL" ya jaise "M2"
+    loadSubjects();
+  } catch (err) {
+    loadingMsg.textContent = "Error aaya, page reload karein";
+  }
+});
+
+async function loadSubjects() {
+  const snap = await get(ref(db, "subjects_public"));
+  if (!snap.exists()) {
+    loadingMsg.textContent = "Subjects load nahi hue";
+    return;
+  }
+  const subjects = snap.val();
+  const keys = Object.keys(subjects);
+
+  loadingMsg.style.display = "none";
+  grid.style.display = "grid";
+
+  let anyLocked = false;
+
+  keys.forEach((key) => {
+    const s = subjects[key];
+    const isOwned = ownedKey === "ALL" || ownedKey === key;
+    if (!isOwned) anyLocked = true;
+
+    const card = document.createElement("div");
+    card.className = "card " + (isOwned ? "owned" : "locked");
+    card.innerHTML = `
+      <div class="code">${key}</div>
+      <div class="name">${s.name}</div>
+      <div class="price">${isOwned ? "Tap करें खोलने के लिए" : "₹" + s.price}</div>
+    `;
+    card.addEventListener("click", () => handleCardClick(key, isOwned));
+    grid.appendChild(card);
+  });
+
+  upgradeNote.style.display = anyLocked && ownedKey !== "ALL" ? "block" : "none";
+}
+
+async function handleCardClick(key, isOwned) {
+  if (!isOwned) {
+    window.location.href = "payment.html";
+    return;
+  }
+  loadingMsg.style.display = "block";
+  loadingMsg.textContent = "Khola ja raha hai...";
+
+  try {
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch(`/api/subject-link?idToken=${idToken}&subjectKey=${key}`);
+    const data = await res.json();
+
+    if (data.driveLink) {
+      window.location.href = data.driveLink;
+    } else {
+      loadingMsg.textContent = data.error || "Link nahi mila";
+    }
+  } catch (err) {
+    loadingMsg.textContent = "Error: " + err.message;
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Question Bank - Select Subject</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+<style>
+  :root {
+    --blue-deep: #0a2540;
+    --blue-panel: #0f3158;
+    --blue-line: #2e5c8a;
+    --amber: #f2a541;
+    --paper: #eef3f8;
+    --paper-dim: #93a9c4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--blue-deep);
+    background-image:
+      linear-gradient(rgba(46,92,138,0.35) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(46,92,138,0.35) 1px, transparent 1px);
+    background-size: 88px 88px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--paper);
+    padding: 24px 0 40px;
+  }
+
+  .wrap { max-width: 440px; margin: 0 auto; padding: 0 20px; }
+
+  .tag {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  .sub {
+    font-size: 13px;
+    color: var(--paper-dim);
+    margin-bottom: 22px;
+  }
+
+  .scroller {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 4px 4px 14px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scroller::-webkit-scrollbar { height: 5px; }
+  .scroller::-webkit-scrollbar-thumb { background: var(--blue-line); border-radius: 4px; }
+
+  .card {
+    flex: 0 0 148px;
+    scroll-snap-align: start;
+    background: var(--blue-panel);
+    border: 1.5px solid var(--blue-line);
+    border-radius: 4px;
+    padding: 16px 14px;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .card:active { transform: scale(0.97); }
+  .card.selected {
+    border-color: var(--amber);
+    background: #15406e;
+  }
+  .card.selected::after {
+    content: "✓";
+    position: absolute;
+    top: 8px; right: 10px;
+    color: var(--amber);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .card .code {
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .card .name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 14px;
+    min-height: 36px;
+  }
+  .card .price {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--paper);
+  }
+  .card.all-card {
+    flex-basis: 168px;
+    background: repeating-linear-gradient(135deg, #15406e, #15406e 8px, #123a63 8px, #123a63 16px);
+    border-color: var(--amber);
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    color: var(--paper-dim);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 22px 0 16px;
+  }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--blue-line); }
+  .divider span { padding: 0 10px; }
+
+  .summary {
+    background: var(--blue-panel);
+    border: 1.5px solid var(--blue-line);
+    border-radius: 4px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .summary.show { display: block; }
+  .summary .row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--paper-dim); }
+  .summary .row.total { color: var(--paper); font-weight: 600; font-size: 15px; border-top: 1px dashed var(--blue-line); padding-top: 10px; margin-top: 10px; }
+
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    border-radius: 3px;
+    border: none;
+    background: var(--amber);
+    color: #17263a;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .status {
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--paper-dim);
+    min-height: 18px;
+    margin-top: 12px;
+  }
+  .status.error { color: #ff8a65; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="tag">Xevron-Tech // Question Bank</div>
+  <h1>Subject चुनिए</h1>
+  <div class="sub">Scroll करके अपना subject select करें</div>
+
+  <div class="scroller" id="scroller">
+    <div style="flex:0 0 6px"></div>
+  </div>
+
+  <div class="divider"><span>या</span></div>
+
+  <div class="summary" id="summary">
+    <div class="row"><span id="summarySubject">—</span><span id="summaryPrice">—</span></div>
+    <div class="row total"><span>Total</span><span id="summaryTotal">₹0</span></div>
+  </div>
+
+  <button class="btn-primary" id="payBtn" disabled>Subject select करें पहले</button>
+  <div class="status" id="statusMsg"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBhud5nJEKXa1cpACVILIp2FmE6RAuGNkY",
+  authDomain: "payment-gateway-8ffe5.firebaseapp.com",
+  databaseURL: "https://payment-gateway-8ffe5-default-rtdb.firebaseio.com",
+  projectId: "payment-gateway-8ffe5",
+  storageBucket: "payment-gateway-8ffe5.firebasestorage.app",
+  messagingSenderId: "65617324140",
+  appId: "1:65617324140:web:d1d504941d9f768fb25049",
+  measurementId: "G-5S0Z4NNCW8"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+const scroller = document.getElementById("scroller");
+const payBtn = document.getElementById("payBtn");
+const summary = document.getElementById("summary");
+const summarySubject = document.getElementById("summarySubject");
+const summaryPrice = document.getElementById("summaryPrice");
+const summaryTotal = document.getElementById("summaryTotal");
+const statusMsg = document.getElementById("statusMsg");
+
+function setStatus(msg, type = "") {
+  statusMsg.textContent = msg;
+  statusMsg.className = "status" + (type ? " " + type : "");
+}
+
+let currentUser = null;
+let selectedKey = null;
+let subjectsData = {};
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "index.html";
+    return;
+  }
+  currentUser = user;
+  const idToken = await user.getIdToken();
+
+  // already paid? seedha drive link pe bhej do
+  try {
+    const res = await fetch(`/api/check-access?idToken=${idToken}`);
+    const data = await res.json();
+    if (data.paid) {
+      window.location.href = "access.html";
+      return;
+    }
+  } catch (err) {
+    // ignore, aage subject selection dikhado
+  }
+
+  loadSubjects();
+});
+
+async function loadSubjects() {
+  const snap = await get(ref(db, "subjects_public"));
+  if (!snap.exists()) {
+    setStatus("Subjects load nahi hue, admin se contact karein", "error");
+    return;
+  }
+  subjectsData = snap.val();
+
+  const individualKeys = Object.keys(subjectsData).filter((k) => k !== "ALL");
+  const allPrice = individualKeys.reduce((acc, k) => acc * Number(subjectsData[k].price), 1);
+
+  individualKeys.forEach((key) => {
+    const s = subjectsData[key];
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.key = key;
+    card.innerHTML = `
+      <div class="code">${key}</div>
+      <div class="name">${s.name}</div>
+      <div class="price">₹${s.price}</div>
+    `;
+    card.addEventListener("click", () => selectSubject(key, s.name, s.price));
+    scroller.appendChild(card);
+  });
+
+  const allCard = document.createElement("div");
+  allCard.className = "card all-card";
+  allCard.dataset.key = "ALL";
+  allCard.innerHTML = `
+    <div class="code">ALL</div>
+    <div class="name">सभी 10 Subjects</div>
+    <div class="price">₹${allPrice}</div>
+  `;
+  allCard.addEventListener("click", () => selectSubject("ALL", "सभी Subjects (Bundle)", allPrice));
+  scroller.appendChild(allCard);
+
+  const spacer = document.createElement("div");
+  spacer.style.flex = "0 0 6px";
+  scroller.appendChild(spacer);
+}
+
+function selectSubject(key, name, price) {
+  selectedKey = key;
+  document.querySelectorAll(".card").forEach((c) => c.classList.remove("selected"));
+  document.querySelector(`.card[data-key="${key}"]`).classList.add("selected");
+
+  summary.classList.add("show");
+  summarySubject.textContent = name;
+  summaryPrice.textContent = `₹${price}`;
+  summaryTotal.textContent = `₹${price}`;
+
+  payBtn.disabled = false;
+  payBtn.textContent = `₹${price} Pay करें`;
+}
+
+payBtn.addEventListener("click", async () => {
+  if (!selectedKey || !currentUser) return;
+  setStatus("Order बन रहा है...");
+  payBtn.disabled = true;
+
+  try {
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch("/api/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken, subjectKey: selectedKey })
+    });
+    const data = await res.json();
+
+    if (data.alreadyPaid) {
+      setStatus("Aap already paid hain, redirect ho raha hai...", "success");
+      window.location.href = "access.html";
+      return;
+    }
+
+    if (!data.payment_session_id) {
+      setStatus(data.error || "Order create nahi hua", "error");
+      payBtn.disabled = false;
+      return;
+    }
+
+    const cashfree = Cashfree({ mode: "production" });
+    cashfree.checkout({
+      paymentSessionId: data.payment_session_id,
+      redirectTarget: "_self"
+    });
+  } catch (err) {
+    setStatus("Error: " + err.message, "error");
+    payBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

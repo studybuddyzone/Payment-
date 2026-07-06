@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Payment Gateway</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue-deep: #0a2540;
+    --blue-panel: #0f3158;
+    --blue-line: #2e5c8a;
+    --amber: #f2a541;
+    --paper: #eef3f8;
+    --paper-dim: #93a9c4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--blue-deep);
+    background-image:
+      linear-gradient(rgba(46,92,138,0.35) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(46,92,138,0.35) 1px, transparent 1px),
+      linear-gradient(rgba(46,92,138,0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(46,92,138,0.15) 1px, transparent 1px);
+    background-size: 88px 88px, 88px 88px, 11px 11px, 11px 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--paper);
+    padding: 20px;
+  }
+
+  .sheet {
+    width: 100%;
+    max-width: 400px;
+    background: var(--blue-panel);
+    border: 1.5px solid var(--blue-line);
+    position: relative;
+    padding: 30px 26px 26px;
+  }
+  /* title-block corner ticks, like an engineering drawing sheet */
+  .sheet::before, .sheet::after {
+    content: "";
+    position: absolute;
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--amber);
+  }
+  .sheet::before { top: -1.5px; left: -1.5px; border-right: none; border-bottom: none; }
+  .sheet::after { bottom: -1.5px; right: -1.5px; border-left: none; border-top: none; }
+
+  .tag {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 23px;
+    font-weight: 700;
+    margin: 0 0 22px;
+    color: var(--paper);
+    letter-spacing: 0.01em;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 3px;
+    border: none;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: transform 0.12s ease, filter 0.12s ease;
+  }
+  .btn:active { transform: scale(0.98); }
+
+  .btn-google {
+    background: var(--paper);
+    color: #17324f;
+  }
+  .btn-google:hover { filter: brightness(0.95); }
+  .btn-google svg { width: 18px; height: 18px; }
+
+  .btn-mobile {
+    background: transparent;
+    color: var(--paper);
+    border: 1.5px solid var(--blue-line);
+  }
+  .btn-mobile:hover { border-color: var(--amber); }
+
+  .btn-primary {
+    background: var(--amber);
+    color: #17263a;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    color: var(--paper-dim);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 20px 0;
+  }
+  .divider::before, .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--blue-line);
+  }
+  .divider span { padding: 0 10px; }
+
+  .otp-box { display: none; }
+  .field-label {
+    font-size: 11px;
+    color: var(--paper-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .otp-box input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 3px;
+    border: 1.5px solid var(--blue-line);
+    background: var(--blue-deep);
+    color: var(--paper);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+  }
+  .otp-box input:focus { outline: none; border-color: var(--amber); }
+  .otp-box input::placeholder { color: #5a7391; }
+
+  .status {
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--paper-dim);
+    min-height: 18px;
+    margin-bottom: 4px;
+  }
+  .status.error { color: #ff8a65; }
+  .status.success { color: #6fd3a3; }
+
+  .sheet-footer {
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--blue-line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sheet-footer .meta {
+    font-size: 10.5px;
+    color: var(--paper-dim);
+    letter-spacing: 0.06em;
+  }
+  .sheet-footer .meta span { color: var(--amber); }
+
+  .receipt-btn {
+    margin-top: 14px;
+    width: 100%;
+    padding: 13px;
+    border-radius: 3px;
+    border: 1.5px solid var(--blue-line);
+    background: transparent;
+    color: var(--paper-dim);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .receipt-btn:hover { border-color: var(--amber); color: var(--paper); }
+
+  #recaptcha-container { display: flex; justify-content: center; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <div class="tag">Xevron-Tech // Access Sheet</div>
+  <h1>Login कीजिए</h1>
+
+  <button class="btn btn-google" id="googleBtn">
+    <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.9 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4.5 24 4.5c-7.7 0-14.4 4.4-17.7 10.2z"/><path fill="#4CAF50" d="M24 43.5c5.3 0 10.1-1.8 13.7-4.9l-6.3-5.3c-2 1.5-4.6 2.4-7.4 2.4-5.4 0-10-3.6-11.6-8.5l-6.5 5C9.5 39.1 16.2 43.5 24 43.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3-3.1 5.4-5.9 7l6.3 5.3C39.5 37.2 43.5 31.3 43.5 24c0-1.2-.1-2.3-.4-3.5z"/></svg>
+    Google से Login करें
+  </button>
+
+  <div class="divider"><span>या</span></div>
+
+  <button class="btn btn-mobile" id="mobileBtn">📱 Mobile Number से Login करें</button>
+
+  <div class="otp-box" id="mobileStep1">
+    <div class="field-label">Mobile Number</div>
+    <input type="tel" id="mobileInput" placeholder="10-digit number" maxlength="10">
+    <div id="recaptcha-container"></div>
+    <button class="btn btn-primary" id="sendOtpBtn">OTP भेजें</button>
+  </div>
+
+  <div class="otp-box" id="mobileStep2">
+    <div class="field-label">OTP Verification</div>
+    <input type="text" id="otpInput" placeholder="6-digit OTP" maxlength="6">
+    <button class="btn btn-primary" id="verifyOtpBtn">Verify करें</button>
+  </div>
+
+  <div class="status" id="statusMsg"></div>
+
+  <div class="sheet-footer">
+    <div class="meta">STATUS: <span id="footerStatus">AWAITING LOGIN</span></div>
+  </div>
+
+  <button class="receipt-btn" id="receiptBtn">Payment Receipt देखें →</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBhud5nJEKXa1cpACVILIp2FmE6RAuGNkY",
+  authDomain: "payment-gateway-8ffe5.firebaseapp.com",
+  databaseURL: "https://payment-gateway-8ffe5-default-rtdb.firebaseio.com",
+  projectId: "payment-gateway-8ffe5",
+  storageBucket: "payment-gateway-8ffe5.firebasestorage.app",
+  messagingSenderId: "65617324140",
+  appId: "1:65617324140:web:d1d504941d9f768fb25049",
+  measurementId: "G-5S0Z4NNCW8"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const statusMsg = document.getElementById("statusMsg");
+const footerStatus = document.getElementById("footerStatus");
+function setStatus(msg, type = "") {
+  statusMsg.textContent = msg;
+  statusMsg.className = "status" + (type ? " " + type : "");
+}
+
+async function goAfterLogin(user) {
+  footerStatus.textContent = "VERIFIED";
+  setStatus("Checking access...");
+
+  try {
+    const idToken = await user.getIdToken();
+    const res = await fetch(`/api/check-access?idToken=${idToken}`);
+    const data = await res.json();
+
+    if (data.paid) {
+      // pehle se paid hai -> subject cards wala access page
+      window.location.href = "access.html";
+    } else {
+      // naya user -> subject select + payment page
+      window.location.href = "payment.html";
+    }
+  } catch (err) {
+    window.location.href = "payment.html";
+  }
+}
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // pehle se logged in hai
+  }
+});
+
+// ---------- Google Sign-In ----------
+document.getElementById("googleBtn").addEventListener("click", async () => {
+  setStatus("");
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    setStatus("Login successful!", "success");
+    goAfterLogin(result.user);
+  } catch (err) {
+    setStatus("Google login fail हुआ: " + err.message, "error");
+  }
+});
+
+// ---------- Mobile OTP ----------
+const mobileBtn = document.getElementById("mobileBtn");
+const step1 = document.getElementById("mobileStep1");
+const step2 = document.getElementById("mobileStep2");
+let confirmationResult = null;
+let recaptchaVerifier = null;
+
+mobileBtn.addEventListener("click", () => {
+  step1.style.display = "block";
+  mobileBtn.style.display = "none";
+
+  recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+    size: "normal"
+  });
+});
+
+document.getElementById("sendOtpBtn").addEventListener("click", async () => {
+  setStatus("");
+  const mobileInput = document.getElementById("mobileInput").value.trim();
+  if (!/^\d{10}$/.test(mobileInput)) {
+    setStatus("Sahi 10-digit mobile number daaliye", "error");
+    return;
+  }
+  const phoneNumber = "+91" + mobileInput;
+
+  try {
+    confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+    setStatus("OTP भेज दिया गया है", "success");
+    step1.style.display = "none";
+    step2.style.display = "block";
+  } catch (err) {
+    setStatus("OTP भेजने में error: " + err.message, "error");
+  }
+});
+
+document.getElementById("verifyOtpBtn").addEventListener("click", async () => {
+  setStatus("");
+  const otp = document.getElementById("otpInput").value.trim();
+  if (!/^\d{6}$/.test(otp)) {
+    setStatus("6-digit OTP daaliye", "error");
+    return;
+  }
+  try {
+    const result = await confirmationResult.confirm(otp);
+    setStatus("Login successful!", "success");
+    goAfterLogin(result.user);
+  } catch (err) {
+    setStatus("Galat OTP: " + err.message, "error");
+  }
+});
+
+// ---------- Payment Receipt Button ----------
+document.getElementById("receiptBtn").addEventListener("click", () => {
+  window.location.href = "receipt.html";
+});
+</script>
+</body>
+</html>
